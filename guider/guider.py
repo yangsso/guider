@@ -24652,6 +24652,7 @@ Copyright:
     def printDirs(path='.', maxLevel=-1):
         def get_dirs(result, parent_path, level, max_level):
             file_list = os.listdir(parent_path)
+            parent_abspath = "[%s]" % (os.path.abspath(parent_path))
 
             if len(file_list) == 0 or \
                     (max_level != -1 and max_level <= level):
@@ -24681,19 +24682,26 @@ Copyright:
                 if os.path.isdir(full_path):
                     total_dir += 1
                     sub_abspath = "[%s]" % (os.path.abspath(sub_path))
-                    info = dict(parent_path=sub_abspath, sub_dirs=[])
-                    result['sub_dirs'].append(info)
+                    info = dict()
+                    info[sub_abspath] = dict(sub_dirs=[], files=[])
+                    result[parent_abspath]['sub_dirs'].append(info)
                     total_info = get_dirs(info, full_path, level + 1, max_level)
 
                     total_size += total_info[0]
                     total_dir += total_info[1]
                     total_file += total_info[2]
 
-
                 elif os.path.isfile(full_path):
                     total_file += 1
                     size = os.stat(full_path).st_size
                     total_size += size
+
+                    if not SysMgr.showAll:
+                        continue
+
+                    file_info = dict()
+                    file_info[full_path] = dict(size=UtilMgr.convertSize2Unit(size), type='file')
+                    result[parent_abspath]['files'].append(file_info)
 
             result['size'] = UtilMgr.convertSize2Unit(total_size)
             result['dir'] = UtilMgr.convertNumber(total_dir)
@@ -24796,8 +24804,7 @@ Copyright:
         # print start path #
         if SysMgr.jsonOutputEnable:
             result = dict()
-            result['parent_path'] = abspath
-            result['sub_dirs'] = []
+            result[abspath] = dict(sub_dirs=[], files=[])
             get_dirs(result, path, 0, -1)
             json_result = UtilMgr.convertDict2Str(result)
             SysMgr.printPipe(json_result)
